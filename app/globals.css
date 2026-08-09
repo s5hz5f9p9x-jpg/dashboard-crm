@@ -1,0 +1,300 @@
+/* Driver Capital — CRM
+   Dirección visual "Ink", la misma del Dashboard de Tenencias
+   (design_handoff_dashboard_ink/). Paleta bloqueada del manual de marca:
+     #00ff8b verde fluo · #24ba6f verde medio · #f3f3e9 crema · #181818 ink · #4c4c4b gris cálido
+   El CRM no tiene modo claro: la marca es este tema, siempre.
+*/
+
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-display);
+  --font-mono: var(--font-mono);
+  --font-heading: var(--font-display);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+  /* ── Superficies (marca) ── */
+  --bg: #181818;
+  --rail: #111111;
+  --surface: #1f1f1f;
+  --surface-2: #262626;
+  --border-token: rgba(243, 243, 233, 0.10);
+  --border-strong: rgba(243, 243, 233, 0.18);
+
+  /* ── Texto (marca) ── */
+  --text: #f3f3e9;
+  --text-2: #cdcdc0;
+  --text-3: #9a9a90;
+  --text-4: #7d7d76;
+
+  /* ── Marca ── */
+  --green: #00ff8b;
+  --green-mid: #24ba6f;
+  --green-deep: #12855a;
+  --green-pale: #b8ffdd;
+  --green-tint: rgba(0, 255, 139, 0.14);
+  --green-glow: 0 0 12px rgba(0, 255, 139, 0.45);
+
+  /* ── Semántica de datos ── */
+  --pos: #00ff8b;
+  --pos-soft: #3ed48a;
+  --neg: #d8473f;
+  --neg-soft: #f08a83;
+  --warn: #e0a02a;
+  --flat: #7d7d76;
+  --navy: #4a9fe0;
+  --navy-tint: rgba(74, 159, 224, 0.16);
+
+  /* ── Radios ── */
+  --r-pill: 999px;
+  --r-card: 20px;
+  --r-card-sm: 16px;
+  --r-chip: 10px;
+  --r-input: 12px;
+
+  /* ── Tipografía — variables inyectadas en <html> por layout.tsx ── */
+  --font-display: var(--font-league-spartan), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, "SF Mono", Menlo, monospace;
+
+  /* ── Sombras y movimiento ── */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.40);
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur-fast: 140ms;
+  --dur: 220ms;
+
+  /* ── Mapeo a las variables que consumen shadcn/ui y el resto de los
+     componentes ya construidos (Button, Card, Badge, Table, Select, Dialog…) ── */
+  --background: var(--bg);
+  --foreground: var(--text);
+  --card: var(--surface);
+  --card-foreground: var(--text);
+  --popover: var(--surface-2);
+  --popover-foreground: var(--text);
+  --primary: var(--green);
+  --primary-foreground: var(--bg);
+  --secondary: var(--surface-2);
+  --secondary-foreground: var(--text);
+  --muted: var(--surface-2);
+  --muted-foreground: var(--text-3);
+  --accent: var(--green-tint);
+  --accent-foreground: var(--green);
+  --destructive: var(--neg);
+  --border: var(--border-token);
+  --input: var(--border-strong);
+  --ring: var(--green);
+  --radius: 0.75rem;
+  --chart-1: var(--green);
+  --chart-2: var(--navy);
+  --chart-3: var(--green-mid);
+  --chart-4: var(--warn);
+  --chart-5: var(--text-3);
+  --sidebar: var(--rail);
+  --sidebar-foreground: var(--text);
+  --sidebar-primary: var(--green);
+  --sidebar-primary-foreground: var(--bg);
+  --sidebar-accent: var(--surface-2);
+  --sidebar-accent-foreground: var(--text);
+  --sidebar-border: var(--border-token);
+  --sidebar-ring: var(--green);
+}
+
+/* ── Colores de asset class (composición de cartera) ── */
+:root {
+  --ac-cedears: #00ff8b;
+  --ac-ons: #24ba6f;
+  --ac-bonos: #12855a;
+  --ac-acc: #4a9fe0;
+  --ac-liq: #cdcdc0;
+  --ac-fci: #b8ffdd;
+  --ac-letras: #8a8f88;
+  --ac-otros: #e0a02a;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+@layer base {
+  html {
+    font-family: var(--font-display);
+    -webkit-font-smoothing: antialiased;
+  }
+  body {
+    background: var(--bg);
+    color: var(--text);
+  }
+  .num {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1;
+  }
+  ::selection {
+    background: var(--green);
+    color: var(--bg);
+  }
+  :focus-visible {
+    outline: 2px solid var(--green);
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border-token);
+    border-radius: var(--r-card);
+    padding: 18px 20px;
+  }
+  .card-hero {
+    background:
+      linear-gradient(150deg, rgba(0, 255, 139, 0.11), rgba(24, 24, 24, 0) 62%),
+      var(--surface);
+    border: 1px solid var(--border-token);
+    border-radius: var(--r-card);
+    padding: 22px 24px 20px;
+  }
+  .label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--text-4);
+  }
+  .label-accent {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--green);
+  }
+  .kpi-hero {
+    font-family: var(--font-mono);
+    font-weight: 600;
+    font-size: 52px;
+    line-height: 0.92;
+    letter-spacing: -0.03em;
+    font-variant-numeric: tabular-nums;
+  }
+  .kpi {
+    font-family: var(--font-mono);
+    font-weight: 600;
+    font-size: 26px;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 9px;
+    border-radius: var(--r-pill);
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.5;
+  }
+  .chip-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex: none;
+  }
+  .minibar {
+    display: block;
+    height: 5px;
+    border-radius: var(--r-pill);
+    background: rgba(243, 243, 233, 0.10);
+    overflow: hidden;
+  }
+  .minibar > span {
+    display: block;
+    height: 5px;
+    border-radius: var(--r-pill);
+  }
+  .rail {
+    width: 64px;
+    background: var(--rail);
+    border-right: 1px solid var(--border-token);
+  }
+  .rail-item {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    color: var(--text-4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition:
+      background var(--dur-fast) var(--ease-out),
+      color var(--dur-fast) var(--ease-out);
+  }
+  .rail-item:hover {
+    background: rgba(243, 243, 233, 0.06);
+    color: var(--text-2);
+  }
+  .rail-item[data-active="true"] {
+    background: var(--green-tint);
+    color: var(--green);
+  }
+  .btn-pill {
+    border-radius: var(--r-pill) !important;
+  }
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 24px;
+    border-bottom: 1px solid var(--border-token);
+    background: var(--surface);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}

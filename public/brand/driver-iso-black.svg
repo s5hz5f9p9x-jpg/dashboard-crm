@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<!--
+  Reconstrucción del isotipo de Driver Capital (driver_iso_black.svg del handoff).
+  El archivo original referencia clases .st0–.st4 sin definir sus fill — sin este
+  bloque de estilos el ícono renderiza como un cuadrado negro sólido, no la marca.
+  Reconstruido con un criterio razonable para el uso previsto (ícono dentro de un
+  cuadrado verde de marca): fondo transparente, trazo en negro sólido.
+  VERIFICAR contra el asset real de Driver Capital cuando esté disponible.
+-->
+<svg version="1.1" id="Capa_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 1080 1080" xml:space="preserve">
+<style>
+  .st0{fill:none;}
+  .st1,.st2,.st3,.st4{fill:#181818;}
+</style>
+<rect class="st0" width="1080" height="1080"></rect>
+<g>
+	<g>
+		<path class="st1" d="M497.5,439.4h126.4c7.8,0,14.2-6.3,14.2-14.1v-73.1c0-7.8-6.4-14.1-14.2-14.1h-17.8c-12.6,0-19-15.2-10-24.1&#xA;			l0,0c8.9-8.9,2.6-24.1-10-24.1H464.8c-36.4,0-71.3,14.4-97.1,40.1l-117.4,117c-51.7,51.5-51.7,135,0,186.5l117.2,116.8&#xA;			c25.8,25.7,60.7,40.1,97.1,40.1h121.3c12.6,0,19-15.2,10-24.1l0,0c-8.9-8.9-2.6-24.1,10-24.1h18c7.8,0,14.2-6.3,14.2-14.1v-73.1&#xA;			c0-7.8-6.4-14.1-14.2-14.1H497.5c-17.6,0-34.4-7-46.8-19.3l-34.4-34.3c-26-25.9-26-67.9,0-93.9l34.4-34.3&#xA;			C463.1,446.4,480,439.4,497.5,439.4z"></path>
+		<path class="st2" d="M387.2,313.7C387.2,313.7,387.2,313.7,387.2,313.7c0.4-0.3,0.9-0.6,1.5-0.9&#xA;			C389.2,312.4,388.7,312.7,387.2,313.7z"></path>
+		<g>
+			<path class="st3" d="M437.6,322.3c0,0,66.7,67.1,116.5,117.1h66.7c-49.8-50.1-116.4-117.1-116.5-117.1&#xA;				c-33.9-33.9-71.2-28.8-95-19.8C418.8,306.7,428.3,313,437.6,322.3z"></path>
+			<path class="st3" d="M437.6,757.7c-9.3,9.3-18.8,15.6-28.3,19.8c23.8,9,61.1,14.1,95-19.8c0,0,66.7-67.1,116.4-117.1h-66.7&#xA;				C504.3,690.6,437.7,757.7,437.6,757.7z"></path>
+		</g>
+		<path class="st4" d="M840.2,446.6L723,329.8c-25.8-25.7-60.7-40.1-97.1-40.1l-161.1,0c-27.9,0-54.9,8.5-77.6,24&#xA;			c12.3-8.1,68.3-40.2,117.1,8.6c0.1,0.1,169.8,170.8,169.8,170.8c26,25.9,26,67.9,0,93.9c0,0-169.7,170.7-169.8,170.8&#xA;			c-48.8,48.8-104.8,16.7-117.1,8.6c22.1,15.1,48.2,23.5,75.3,23.9c0.4,0,163.4,0,163.4,0c36.4,0,71.4-14.4,97.1-40.1&#xA;			c0,0,123.2-123.2,125.4-126.1C891.6,572.3,888.9,495.2,840.2,446.6z"></path>
+	</g>
+</g>
+</svg>

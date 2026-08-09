@@ -1,0 +1,48 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1786046515012,
+      "tag": "0000_salty_donald_blake",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1786049292259,
+      "tag": "0001_breezy_gabe_jones",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1786051505972,
+      "tag": "0002_moaning_gauntlet",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1786052494664,
+      "tag": "0003_outstanding_leper_queen",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1786111720863,
+      "tag": "0004_sticky_firebrand",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1786113154358,
+      "tag": "0005_wooden_praxagora",
+      "breakpoints": true
+    }
+  ]
+}
