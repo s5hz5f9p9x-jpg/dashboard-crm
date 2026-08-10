@@ -32,31 +32,45 @@ export async function regenerarDisparadores(): Promise<{ generados: number; cola
   const periodo = periodoMes(hoy);
   const antesDeCorrer = new Date();
 
-  const umbralVariacion = await getConfigNumber("variacion_aum_alerta_pct");
-  const diasInactividad = await getConfigNumber("dias_inactividad_alerta");
-  const frecuencias = {
-    A: await getConfigNumber("frecuencia_contacto_a_dias"),
-    B: await getConfigNumber("frecuencia_contacto_b_dias"),
-    C: await getConfigNumber("frecuencia_contacto_c_dias"),
-  } as const;
+  const [umbralVariacion, diasInactividad, frecA, frecB, frecC] = await Promise.all([
+    getConfigNumber("variacion_aum_alerta_pct"),
+    getConfigNumber("dias_inactividad_alerta"),
+    getConfigNumber("frecuencia_contacto_a_dias"),
+    getConfigNumber("frecuencia_contacto_b_dias"),
+    getConfigNumber("frecuencia_contacto_c_dias"),
+  ]);
+  const frecuencias = { A: frecA, B: frecB, C: frecC } as const;
 
   // Al día antes de generar disparadores — así "cambio_segmento" ve datos frescos.
   await recalcularSegmentos(hoy);
 
-  const todosClientes = await db.select().from(clientes);
+  const [todosClientes, todosContactos, todosSnapshots] = await Promise.all([
+    db.select().from(clientes),
+    db.select().from(contactos).orderBy(desc(contactos.fecha)),
+    db.select({ cliente_id: aumSnapshots.cliente_id, fecha: aumSnapshots.fecha, aum_usd: aumSnapshots.aum_usd }).from(aumSnapshots),
+  ]);
   const activos = todosClientes.filter((c) => c.estado === "activo");
   const propuestos: DisparadorPropuesto[] = [];
+
+  const contactosPorCliente = new Map<string, typeof todosContactos>();
+  for (const ct of todosContactos) {
+    const arr = contactosPorCliente.get(ct.cliente_id) ?? [];
+    arr.push(ct);
+    contactosPorCliente.set(ct.cliente_id, arr);
+  }
+  const snapshotsPorCliente = new Map<string, typeof todosSnapshots>();
+  for (const s of todosSnapshots) {
+    const arr = snapshotsPorCliente.get(s.cliente_id) ?? [];
+    arr.push(s);
+    snapshotsPorCliente.set(s.cliente_id, arr);
+  }
 
   for (const c of activos) {
     const segmentoEfectivo = c.segmento_manual ?? c.segmento;
     const frecuencia = frecuencias[segmentoEfectivo];
     const nombreCompleto = `${c.nombre} ${c.apellido}`;
 
-    const contactosCliente = await db
-      .select()
-      .from(contactos)
-      .where(eq(contactos.cliente_id, c.id))
-      .orderBy(desc(contactos.fecha));
+    const contactosCliente = contactosPorCliente.get(c.id) ?? [];
 
     const ultimoContacto = contactosCliente[0]?.fecha ?? null;
     const referenciaContacto = ultimoContacto ?? new Date(`${c.fecha_alta}T00:00:00`);
@@ -115,10 +129,7 @@ export async function regenerarDisparadores(): Promise<{ generados: number; cola
       }
     }
 
-    const snapshotsCliente = await db
-      .select({ fecha: aumSnapshots.fecha, aum_usd: aumSnapshots.aum_usd })
-      .from(aumSnapshots)
-      .where(eq(aumSnapshots.cliente_id, c.id));
+    const snapshotsCliente = snapshotsPorCliente.get(c.id) ?? [];
     const referenciaAum = encontrarReferenciaHaceUnMes(snapshotsCliente);
     if (referenciaAum) {
       const actual = [...snapshotsCliente].sort((a, b) => (a.fecha < b.fecha ? 1 : -1))[0];

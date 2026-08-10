@@ -22,10 +22,8 @@ export interface ClienteConEstado {
   diasDesdeUltimoContacto: number;
 }
 
-async function frecuenciaPorSegmento(segmento: Segmento): Promise<number> {
-  if (segmento === "A") return getConfigNumber("frecuencia_contacto_a_dias");
-  if (segmento === "B") return getConfigNumber("frecuencia_contacto_b_dias");
-  return getConfigNumber("frecuencia_contacto_c_dias");
+function frecuenciaPorSegmento(segmento: Segmento, frecuencias: Record<Segmento, number>): number {
+  return frecuencias[segmento];
 }
 
 function diasEntre(a: Date, b: Date): number {
@@ -33,41 +31,44 @@ function diasEntre(a: Date, b: Date): number {
 }
 
 export async function listarClientes(): Promise<ClienteConEstado[]> {
-  const todos = await db.select().from(clientes);
-
-  const ultimosContactos = await db
-    .select({ cliente_id: contactos.cliente_id, ultima: max(contactos.fecha) })
-    .from(contactos)
-    .groupBy(contactos.cliente_id);
+  const [todos, ultimosContactos, frecA, frecB, frecC] = await Promise.all([
+    db.select().from(clientes),
+    db
+      .select({ cliente_id: contactos.cliente_id, ultima: max(contactos.fecha) })
+      .from(contactos)
+      .groupBy(contactos.cliente_id),
+    getConfigNumber("frecuencia_contacto_a_dias"),
+    getConfigNumber("frecuencia_contacto_b_dias"),
+    getConfigNumber("frecuencia_contacto_c_dias"),
+  ]);
+  const frecuencias: Record<Segmento, number> = { A: frecA, B: frecB, C: frecC };
   const mapaUltimoContacto = new Map(ultimosContactos.map((c) => [c.cliente_id, c.ultima]));
 
   const hoy = new Date();
 
-  return Promise.all(
-    todos.map(async (c) => {
-      const segmentoEfectivo = c.segmento_manual ?? c.segmento;
-      const ultimoContacto = mapaUltimoContacto.get(c.id);
-      const referencia = ultimoContacto ? new Date(ultimoContacto) : new Date(`${c.fecha_alta}T00:00:00`);
-      const diasDesdeUltimoContacto = Math.max(0, diasEntre(hoy, referencia));
-      const frecuencia = await frecuenciaPorSegmento(segmentoEfectivo);
+  return todos.map((c) => {
+    const segmentoEfectivo = c.segmento_manual ?? c.segmento;
+    const ultimoContacto = mapaUltimoContacto.get(c.id);
+    const referencia = ultimoContacto ? new Date(ultimoContacto) : new Date(`${c.fecha_alta}T00:00:00`);
+    const diasDesdeUltimoContacto = Math.max(0, diasEntre(hoy, referencia));
+    const frecuencia = frecuenciaPorSegmento(segmentoEfectivo, frecuencias);
 
-      return {
-        id: c.id,
-        nombre: c.nombre,
-        apellido: c.apellido,
-        email: c.email,
-        telefono: c.telefono,
-        fecha_alta: c.fecha_alta,
-        nivel_servicio: c.nivel_servicio,
-        segmento: c.segmento,
-        segmento_manual: c.segmento_manual,
-        aum_actual_usd: c.aum_actual_usd,
-        estado: c.estado,
-        semaforo: c.estado === "activo" ? calcularSemaforo(diasDesdeUltimoContacto, frecuencia) : ("rojo" as Semaforo),
-        diasDesdeUltimoContacto,
-      };
-    }),
-  );
+    return {
+      id: c.id,
+      nombre: c.nombre,
+      apellido: c.apellido,
+      email: c.email,
+      telefono: c.telefono,
+      fecha_alta: c.fecha_alta,
+      nivel_servicio: c.nivel_servicio,
+      segmento: c.segmento,
+      segmento_manual: c.segmento_manual,
+      aum_actual_usd: c.aum_actual_usd,
+      estado: c.estado,
+      semaforo: c.estado === "activo" ? calcularSemaforo(diasDesdeUltimoContacto, frecuencia) : ("rojo" as Semaforo),
+      diasDesdeUltimoContacto,
+    };
+  });
 }
 
 export async function obtenerFichaCliente(id: string) {
@@ -110,18 +111,25 @@ export async function obtenerFichaCliente(id: string) {
  * fondo se mantiene al día por si el override se saca más adelante.
  */
 export async function recalcularSegmentos(hoy = new Date()): Promise<{ cambios: number; total: number }> {
-  const todos = await db.select().from(clientes);
-  const umbralA = await getConfigNumber("umbral_segmento_a_usd");
-  const umbralB = await getConfigNumber("umbral_segmento_b_usd");
-  const diasGracia = await getConfigNumber("dias_gracia_cliente_nuevo");
+  const [todos, umbralA, umbralB, diasGracia, todosSnapshots] = await Promise.all([
+    db.select().from(clientes),
+    getConfigNumber("umbral_segmento_a_usd"),
+    getConfigNumber("umbral_segmento_b_usd"),
+    getConfigNumber("dias_gracia_cliente_nuevo"),
+    db.select({ cliente_id: aumSnapshots.cliente_id, fecha: aumSnapshots.fecha, aum_usd: aumSnapshots.aum_usd }).from(aumSnapshots),
+  ]);
+
+  const snapshotsPorCliente = new Map<string, SnapshotAum[]>();
+  for (const s of todosSnapshots) {
+    const arr = snapshotsPorCliente.get(s.cliente_id) ?? [];
+    arr.push({ fecha: s.fecha, aum_usd: s.aum_usd });
+    snapshotsPorCliente.set(s.cliente_id, arr);
+  }
 
   let cambios = 0;
 
   for (const c of todos) {
-    const snapshots: SnapshotAum[] = await db
-      .select({ fecha: aumSnapshots.fecha, aum_usd: aumSnapshots.aum_usd })
-      .from(aumSnapshots)
-      .where(eq(aumSnapshots.cliente_id, c.id));
+    const snapshots: SnapshotAum[] = snapshotsPorCliente.get(c.id) ?? [];
 
     const resultado = calcularSegmento({
       estado: c.estado,
