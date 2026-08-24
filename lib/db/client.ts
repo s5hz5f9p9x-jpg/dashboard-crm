@@ -10,7 +10,10 @@ if (!DATABASE_URL) {
   );
 }
 
-const client = postgres(DATABASE_URL, { ssl: "require", max: 5, idle_timeout: 20 });
+// prepare: false es obligatorio contra el pooler de Supabase en modo transacción (puerto 6543):
+// cada statement puede ir a una conexión física distinta, así que los prepared statements de
+// postgres.js (que asumen una sola conexión persistente) rompen o cuelgan las queries.
+const client = postgres(DATABASE_URL, { ssl: "require", max: 5, idle_timeout: 20, prepare: false });
 
 export const db = drizzle(client, { schema });
 export { client };
