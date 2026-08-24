@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq, gte, lte } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db/client";
 import { clientes, metricasSemanales, prospectoEtapaHistorial, prospectos } from "@/lib/db/schema";
@@ -45,58 +45,55 @@ export interface MetricaSemanaCompleta extends MetricasSemanaCalculadas {
 
 export async function obtenerMetricasSemanales(): Promise<MetricaSemanaCompleta[]> {
   await sembrarSemanas();
-  const semanas = await db.select().from(metricasSemanales).orderBy(metricasSemanales.semana);
 
-  return Promise.all(
-    semanas.map(async (s) => {
-      const desdeDate = new Date(`${s.fecha_desde}T00:00:00`);
-      const hastaDate = new Date(`${s.fecha_hasta}T23:59:59`);
+  const [semanas, todosProspectos, todoElHistorial, todosClientes] = await Promise.all([
+    db.select().from(metricasSemanales).orderBy(metricasSemanales.semana),
+    db.select().from(prospectos),
+    db.select().from(prospectoEtapaHistorial),
+    db.select({ fecha_alta: clientes.fecha_alta }).from(clientes),
+  ]);
 
-      const prospectosDelRango = await db
-        .select()
-        .from(prospectos)
-        .where(and(gte(prospectos.fecha_ingreso, s.fecha_desde), lte(prospectos.fecha_ingreso, s.fecha_hasta)));
-      const leadsCaptados = prospectosDelRango.length;
-      const leadsCalificados = prospectosDelRango.filter((p) => p.calificado).length;
+  return semanas.map((s) => {
+    const desdeDate = new Date(`${s.fecha_desde}T00:00:00`);
+    const hastaDate = new Date(`${s.fecha_hasta}T23:59:59`);
 
-      const historialDelRango = await db
-        .select()
-        .from(prospectoEtapaHistorial)
-        .where(and(gte(prospectoEtapaHistorial.fecha, desdeDate), lte(prospectoEtapaHistorial.fecha, hastaDate)));
-      const llamadasAgendadas = new Set(
-        historialDelRango.filter((h) => h.etapa === "llamada_agendada").map((h) => h.prospecto_id),
-      ).size;
-      const llamadasRealizadas = new Set(
-        historialDelRango.filter((h) => h.etapa === "llamada_realizada").map((h) => h.prospecto_id),
-      ).size;
+    const prospectosDelRango = todosProspectos.filter(
+      (p) => p.fecha_ingreso >= s.fecha_desde && p.fecha_ingreso <= s.fecha_hasta,
+    );
+    const leadsCaptados = prospectosDelRango.length;
+    const leadsCalificados = prospectosDelRango.filter((p) => p.calificado).length;
 
-      const clientesNuevos = (
-        await db
-          .select()
-          .from(clientes)
-          .where(and(gte(clientes.fecha_alta, s.fecha_desde), lte(clientes.fecha_alta, s.fecha_hasta)))
-      ).length;
+    const historialDelRango = todoElHistorial.filter((h) => h.fecha >= desdeDate && h.fecha <= hastaDate);
+    const llamadasAgendadas = new Set(
+      historialDelRango.filter((h) => h.etapa === "llamada_agendada").map((h) => h.prospecto_id),
+    ).size;
+    const llamadasRealizadas = new Set(
+      historialDelRango.filter((h) => h.etapa === "llamada_realizada").map((h) => h.prospecto_id),
+    ).size;
 
-      const calculadas: MetricasSemanaCalculadas = {
-        leadsCaptados,
-        leadsCalificados,
-        llamadasAgendadas,
-        llamadasRealizadas,
-        clientesNuevos,
-        inversionPublicitariaUsd: s.inversion_publicitaria_usd,
-      };
+    const clientesNuevos = todosClientes.filter(
+      (c) => c.fecha_alta >= s.fecha_desde && c.fecha_alta <= s.fecha_hasta,
+    ).length;
 
-      return {
-        semana: s.semana,
-        fechaDesde: s.fecha_desde,
-        fechaHasta: s.fecha_hasta,
-        alcancePerfilObjetivo: s.alcance_perfil_objetivo,
-        visitasPerfil: s.visitas_perfil,
-        ...calculadas,
-        tasas: calcularTasasDerivadas(calculadas),
-      };
-    }),
-  );
+    const calculadas: MetricasSemanaCalculadas = {
+      leadsCaptados,
+      leadsCalificados,
+      llamadasAgendadas,
+      llamadasRealizadas,
+      clientesNuevos,
+      inversionPublicitariaUsd: s.inversion_publicitaria_usd,
+    };
+
+    return {
+      semana: s.semana,
+      fechaDesde: s.fecha_desde,
+      fechaHasta: s.fecha_hasta,
+      alcancePerfilObjetivo: s.alcance_perfil_objetivo,
+      visitasPerfil: s.visitas_perfil,
+      ...calculadas,
+      tasas: calcularTasasDerivadas(calculadas),
+    };
+  });
 }
 
 export async function actualizarMetricaSemanal(
@@ -117,7 +114,15 @@ export async function actualizarMetricaSemanal(
 }
 
 export async function obtenerModeloEconomicoAction(): Promise<ResultadoModeloEconomico> {
-  const activos = await db.select().from(clientes).where(eq(clientes.estado, "activo"));
+  const [todos, semanas, feeAnualPct, retencionAnualSupuestoPct, multiploLtvCac] = await Promise.all([
+    db.select().from(clientes),
+    db.select().from(metricasSemanales),
+    getConfigNumber("fee_anual_pct"),
+    getConfigNumber("retencion_anual_pct"),
+    getConfigNumber("multiplo_ltv_cac"),
+  ]);
+
+  const activos = todos.filter((c) => c.estado === "activo");
   const aumPromedio = activos.length > 0 ? activos.reduce((acc, c) => acc + c.aum_actual_usd, 0) / activos.length : 0;
 
   const hoy = new Date();
@@ -125,14 +130,12 @@ export async function obtenerModeloEconomicoAction(): Promise<ResultadoModeloEco
   corte12m.setFullYear(corte12m.getFullYear() - 1);
   const corte12mISO = corte12m.toISOString().slice(0, 10);
 
-  const todos = await db.select().from(clientes);
   const candidatosHaceUnAnio = todos.filter(
     (c) => c.fecha_alta <= corte12mISO && (!c.fecha_baja || c.fecha_baja > corte12mISO),
   );
   const siguenActivos = candidatosHaceUnAnio.filter((c) => c.estado === "activo");
   const retencionRealPct = candidatosHaceUnAnio.length > 0 ? (siguenActivos.length / candidatosHaceUnAnio.length) * 100 : null;
 
-  const semanas = await db.select().from(metricasSemanales);
   const inversionPublicitariaTotalUsd = semanas.reduce((acc, s) => acc + s.inversion_publicitaria_usd, 0);
 
   let clientesNuevosPeriodo = 0;
@@ -144,10 +147,10 @@ export async function obtenerModeloEconomicoAction(): Promise<ResultadoModeloEco
 
   return calcularModeloEconomico({
     aumPromedio,
-    feeAnualPct: await getConfigNumber("fee_anual_pct"),
-    retencionAnualSupuestoPct: await getConfigNumber("retencion_anual_pct"),
+    feeAnualPct,
+    retencionAnualSupuestoPct,
     retencionRealPct,
-    multiploLtvCac: await getConfigNumber("multiplo_ltv_cac"),
+    multiploLtvCac,
     inversionPublicitariaTotalUsd,
     clientesNuevosPeriodo,
   });
