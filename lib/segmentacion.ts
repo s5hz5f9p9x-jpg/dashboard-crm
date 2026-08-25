@@ -7,8 +7,6 @@ export interface SnapshotAum {
 
 export interface CalcularSegmentoParams {
   estado: EstadoCliente;
-  fechaAlta: string; // YYYY-MM-DD
-  hoy: Date;
   segmentoManual: Segmento | null;
   segmentoManualMotivo: string | null;
   /** Segmento vigente antes de este recálculo — necesario para aplicar la histéresis. */
@@ -17,7 +15,6 @@ export interface CalcularSegmentoParams {
   snapshots: SnapshotAum[];
   umbralSegmentoA: number;
   umbralSegmentoB: number;
-  diasGraciaClienteNuevo: number;
 }
 
 export interface ResultadoSegmento {
@@ -33,21 +30,13 @@ const FACTOR_HISTERESIS = 0.9;
  * Algoritmo de segmentación A/B/C — ver SPEC.md sección 5.1.
  * Para bajar de segmento el promedio tiene que estar 10% por debajo del umbral
  * del segmento actual (histéresis), no apenas por debajo. Subir de segmento no
- * tiene resistencia: se aplica en cuanto se cruza el umbral.
+ * tiene resistencia: se aplica en cuanto se cruza el umbral. Un cliente recién
+ * dado de alta se clasifica igual que cualquier otro apenas tenga el primer
+ * snapshot de AUM — no hay período de gracia.
  */
 export function calcularSegmento(params: CalcularSegmentoParams): ResultadoSegmento {
-  const {
-    estado,
-    fechaAlta,
-    hoy,
-    segmentoManual,
-    segmentoManualMotivo,
-    segmentoActual,
-    snapshots,
-    umbralSegmentoA,
-    umbralSegmentoB,
-    diasGraciaClienteNuevo,
-  } = params;
+  const { estado, segmentoManual, segmentoManualMotivo, segmentoActual, snapshots, umbralSegmentoA, umbralSegmentoB } =
+    params;
 
   if (segmentoManual) {
     if (!segmentoManualMotivo || segmentoManualMotivo.trim() === "") {
@@ -62,15 +51,6 @@ export function calcularSegmento(params: CalcularSegmentoParams): ResultadoSegme
 
   if (estado !== "activo") {
     return { segmento: "C", motivo: `Cliente en estado "${estado}"`, aumPromedio: null };
-  }
-
-  const diasDesdeAlta = diferenciaEnDias(hoy, new Date(`${fechaAlta}T00:00:00`));
-  if (diasDesdeAlta < diasGraciaClienteNuevo) {
-    return {
-      segmento: "C",
-      motivo: `Cliente nuevo: ${diasDesdeAlta} días desde el alta (gracia de ${diasGraciaClienteNuevo})`,
-      aumPromedio: null,
-    };
   }
 
   const mensuales = ultimosSnapshotsMensuales(snapshots, 3);
@@ -108,11 +88,6 @@ export function calcularSegmento(params: CalcularSegmentoParams): ResultadoSegme
     motivo: `Se mantiene por histéresis: AUM promedio US$ ${aumPromedio.toFixed(0)} no bajó del piso US$ ${pisoHisteresis.toFixed(0)}`,
     aumPromedio,
   };
-}
-
-function diferenciaEnDias(a: Date, b: Date): number {
-  const ms = a.getTime() - b.getTime();
-  return Math.floor(ms / (1000 * 60 * 60 * 24));
 }
 
 /**

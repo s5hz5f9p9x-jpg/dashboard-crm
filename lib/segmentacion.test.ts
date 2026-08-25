@@ -1,23 +1,18 @@
 import { describe, expect, it } from "vitest";
 import { calcularSegmento, type SnapshotAum } from "./segmentacion";
 
-const HOY = new Date("2026-08-06T12:00:00");
 const UMBRAL_A = 100_000;
 const UMBRAL_B = 40_000;
-const GRACIA = 90;
 
 function base(overrides: Partial<Parameters<typeof calcularSegmento>[0]> = {}) {
   return {
     estado: "activo" as const,
-    fechaAlta: "2020-01-01",
-    hoy: HOY,
     segmentoManual: null,
     segmentoManualMotivo: null,
     segmentoActual: "C" as const,
     snapshots: [] as SnapshotAum[],
     umbralSegmentoA: UMBRAL_A,
     umbralSegmentoB: UMBRAL_B,
-    diasGraciaClienteNuevo: GRACIA,
     ...overrides,
   };
 }
@@ -65,26 +60,9 @@ describe("calcularSegmento", () => {
     expect(r.segmento).toBe("C");
   });
 
-  it("un cliente con menos de 90 días desde el alta es C aunque tenga AUM alto", () => {
-    const r = calcularSegmento(
-      base({
-        fechaAlta: "2026-07-15", // ~22 días antes de HOY
-        snapshots: snapshotsMensuales([500_000]),
-      }),
-    );
-    expect(r.segmento).toBe("C");
-    expect(r.motivo).toMatch(/nuevo/i);
-  });
-
-  it("un cliente justo en el borde de los 90 días ya no está en gracia", () => {
-    // 90 días antes de 2026-08-06 => 2026-05-08
-    const r = calcularSegmento(
-      base({
-        fechaAlta: "2026-05-08",
-        snapshots: snapshotsMensuales([500_000]),
-      }),
-    );
-    expect(r.segmento).not.toBe("C");
+  it("un cliente recién dado de alta ya se clasifica por su AUM real, sin período de gracia", () => {
+    const r = calcularSegmento(base({ snapshots: snapshotsMensuales([500_000]) }));
+    expect(r.segmento).toBe("A");
   });
 
   it("sin ningún snapshot, cae en C con motivo explícito", () => {

@@ -42,7 +42,7 @@ export async function regenerarDisparadores(): Promise<{ generados: number; cola
   const frecuencias = { A: frecA, B: frecB, C: frecC } as const;
 
   // Al día antes de generar disparadores — así "cambio_segmento" ve datos frescos.
-  await recalcularSegmentos(hoy);
+  await recalcularSegmentos();
 
   const [todosClientes, todosContactos, todosSnapshots] = await Promise.all([
     db.select().from(clientes),

@@ -53,11 +53,6 @@ const DEFAULTS: { clave: string; valor: string; descripcion: string }[] = [
     valor: "3",
     descripcion: "Múltiplo mínimo LTV/CAC para considerar sana la adquisición.",
   },
-  {
-    clave: "dias_gracia_cliente_nuevo",
-    valor: "90",
-    descripcion: "Días desde el alta durante los cuales un cliente nuevo se mantiene en segmento C sin importar el AUM.",
-  },
 ];
 
 async function main() {

@@ -12,8 +12,7 @@ export type ConfigKey =
   | "dias_inactividad_alerta"
   | "fee_anual_pct"
   | "retencion_anual_pct"
-  | "multiplo_ltv_cac"
-  | "dias_gracia_cliente_nuevo";
+  | "multiplo_ltv_cac";
 
 export async function getConfigNumber(clave: ConfigKey): Promise<number> {
   const [row] = await db.select().from(configuracion).where(eq(configuracion.clave, clave));

@@ -110,12 +110,11 @@ export async function obtenerFichaCliente(id: string) {
  * sigue ganando en toda la UI (ver listarClientes), pero el valor calculado de
  * fondo se mantiene al día por si el override se saca más adelante.
  */
-export async function recalcularSegmentos(hoy = new Date()): Promise<{ cambios: number; total: number }> {
-  const [todos, umbralA, umbralB, diasGracia, todosSnapshots] = await Promise.all([
+export async function recalcularSegmentos(): Promise<{ cambios: number; total: number }> {
+  const [todos, umbralA, umbralB, todosSnapshots] = await Promise.all([
     db.select().from(clientes),
     getConfigNumber("umbral_segmento_a_usd"),
     getConfigNumber("umbral_segmento_b_usd"),
-    getConfigNumber("dias_gracia_cliente_nuevo"),
     db.select({ cliente_id: aumSnapshots.cliente_id, fecha: aumSnapshots.fecha, aum_usd: aumSnapshots.aum_usd }).from(aumSnapshots),
   ]);
 
@@ -133,15 +132,12 @@ export async function recalcularSegmentos(hoy = new Date()): Promise<{ cambios: 
 
     const resultado = calcularSegmento({
       estado: c.estado,
-      fechaAlta: c.fecha_alta,
-      hoy,
       segmentoManual: null,
       segmentoManualMotivo: null,
       segmentoActual: c.segmento,
       snapshots,
       umbralSegmentoA: umbralA,
       umbralSegmentoB: umbralB,
-      diasGraciaClienteNuevo: diasGracia,
     });
 
     if (resultado.segmento !== c.segmento) {
