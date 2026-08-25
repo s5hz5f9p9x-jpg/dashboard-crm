@@ -19,7 +19,10 @@ export interface ClienteConEstado {
   aum_actual_usd: number;
   estado: string;
   semaforo: Semaforo;
+  /** Si no hubo ningún contacto registrado, se cuenta desde la fecha de alta (ver tuvoContacto). */
   diasDesdeUltimoContacto: number;
+  /** false = nunca se registró un contacto; el semáforo se calcula desde el alta. */
+  tuvoContacto: boolean;
 }
 
 function frecuenciaPorSegmento(segmento: Segmento, frecuencias: Record<Segmento, number>): number {
@@ -67,6 +70,7 @@ export async function listarClientes(): Promise<ClienteConEstado[]> {
       estado: c.estado,
       semaforo: c.estado === "activo" ? calcularSemaforo(diasDesdeUltimoContacto, frecuencia) : ("rojo" as Semaforo),
       diasDesdeUltimoContacto,
+      tuvoContacto: !!ultimoContacto,
     };
   });
 }
