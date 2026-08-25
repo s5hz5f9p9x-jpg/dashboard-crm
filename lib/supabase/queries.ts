@@ -39,6 +39,27 @@ export async function listarCuentasSupabase(): Promise<ClientAccountSupabase[]> 
   return rows;
 }
 
+export interface FlujoBonoSupabase {
+  ticker: string;
+  flow_date: string;
+  interest: number;
+  amort: number;
+}
+
+/**
+ * Cronogramas de flujos de todos los bonos cargados. Es la misma tabla que usa
+ * el dashboard (ver su lib/bondFlowsDb.ts): una sola fuente de verdad para las
+ * dos apps, que se mantiene desde la pantalla de Carga.
+ */
+export async function listarFlujosBonos(): Promise<FlujoBonoSupabase[]> {
+  const sql = getSupabaseSql();
+  return sql<FlujoBonoSupabase[]>`
+    select ticker, flow_date::text as flow_date, interest::float8 as interest, amort::float8 as amort
+    from bond_flows
+    order by ticker, flow_date
+  `;
+}
+
 /** Últimas posiciones (por cuenta) de la lista de account_ids dada, con clase de activo y moneda. */
 export async function obtenerUltimasPosiciones(accountIds: string[]): Promise<PositionSupabase[]> {
   if (accountIds.length === 0) return [];
