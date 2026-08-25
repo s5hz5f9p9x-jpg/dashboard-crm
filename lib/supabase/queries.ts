@@ -48,7 +48,7 @@ export async function obtenerUltimasPosiciones(accountIds: string[]): Promise<Po
            a.asset_class, a.currency
     from positions p
     left join assets a on a.ticker = p.ticker
-    where p.account_id = any(${sql.array(accountIds)}::uuid[])
+    where p.account_id = any(${accountIds}::uuid[])
       and p.asof = (select max(p2.asof) from positions p2 where p2.account_id = p.account_id)
   `;
   return rows;

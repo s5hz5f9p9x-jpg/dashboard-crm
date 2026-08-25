@@ -89,7 +89,8 @@ export function ClientesTable({ data }: { data: ClienteConEstado[] }) {
 
   const resumen = useMemo(() => {
     const activos = filtrados.filter((c) => c.estado === "activo");
-    const aumTotal = filtrados.reduce((acc, c) => acc + c.aum_actual_usd, 0);
+    // Los dados de baja ya no están bajo gestión, así que no suman al AUM.
+    const aumTotal = filtrados.filter((c) => c.estado !== "baja").reduce((acc, c) => acc + c.aum_actual_usd, 0);
     const conAum = activos.filter((c) => c.aum_actual_usd > 0);
     return {
       aumTotal,
