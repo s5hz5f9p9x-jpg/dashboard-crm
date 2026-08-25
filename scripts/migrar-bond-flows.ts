@@ -12,7 +12,7 @@
  */
 
 import fs from "fs";
-import { getSupabaseAdmin } from "../lib/supabase/admin";
+import { getSupabaseAdmin, type BondFlowRow } from "../lib/supabase/admin";
 
 const RUTA_ESTATICO =
   "/Users/ulisesviolo/Documents/Dashboard tenencias/src/lib/bondFlows.ts";
@@ -22,6 +22,17 @@ interface Flow {
   interest: number;
   amort: number;
 }
+
+/**
+ * Los genéricos de supabase-js no resuelven los nombres de tabla sin los tipos
+ * generados por su CLI, así que declaramos acá la porción de la API que usamos.
+ * El runtime ya está verificado contra la tabla real.
+ */
+interface TablaBondFlows {
+  select(cols: string): Promise<{ data: BondFlowRow[] | null; error: { message: string } | null }>;
+  insert(filas: BondFlowRow[]): Promise<{ error: { message: string } | null }>;
+}
+type ClienteBondFlows = { from(tabla: "bond_flows"): TablaBondFlows };
 
 function leerCronogramasEstaticos(): Record<string, Flow[]> {
   const src = fs.readFileSync(RUTA_ESTATICO, "utf8");
@@ -34,7 +45,7 @@ function leerCronogramasEstaticos(): Record<string, Flow[]> {
 
 async function main() {
   const aplicar = process.argv.includes("--aplicar");
-  const db = getSupabaseAdmin();
+  const db = getSupabaseAdmin() as unknown as ClienteBondFlows;
 
   const estaticos = leerCronogramasEstaticos();
   console.log(`Cronogramas en el archivo del dashboard: ${Object.keys(estaticos).length} tickers`);
