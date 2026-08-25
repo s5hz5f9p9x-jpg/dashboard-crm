@@ -14,11 +14,13 @@ import {
   Upload,
   Link2,
   RefreshCw,
+  Coins,
 } from "lucide-react";
 
 const NAV = [
   { href: "/inicio", label: "Inicio", icon: LayoutGrid },
   { href: "/clientes", label: "Clientes", icon: Users },
+  { href: "/cobros", label: "Cobros", icon: Coins },
   { href: "/pipeline", label: "Pipeline", icon: Workflow },
   { href: "/referidos", label: "Referidos", icon: Share2 },
   { href: "/metricas", label: "Métricas", icon: TrendingUp },
