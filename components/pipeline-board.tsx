@@ -11,7 +11,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal } from "lucide-react";
+import { MoreHorizontal, Megaphone } from "lucide-react";
 import { ETAPAS_PIPELINE } from "@/lib/prospectos";
 import { moverEtapaProspecto, convertirEnCliente } from "@/app/actions/prospectos";
 import type { EtapaProspecto } from "@/lib/db/schema";
@@ -28,6 +28,8 @@ export interface ProspectoPipeline {
   cliente_id: string | null;
   /** Calculado en el server para que no haya desajuste de fechas al hidratar. */
   diasEnPipeline: number;
+  /** true = entró solo por el webhook de Meta Lead Ads. */
+  deMeta: boolean;
 }
 
 /** A partir de acá un prospecto abierto se marca como estancado. */
@@ -64,11 +66,14 @@ const PATRIMONIO_LABEL: Record<string, string> = {
   mas_150k: "> 150k",
 };
 
-export function PipelineBoard({ prospectos }: { prospectos: ProspectoPipeline[] }) {
+type Pestana = "todos" | "mios" | "meta";
+
+export function PipelineBoard({ prospectos: todosLosProspectos }: { prospectos: ProspectoPipeline[] }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [arrastrando, setArrastrando] = useState<string | null>(null);
   const [sobreEtapa, setSobreEtapa] = useState<EtapaProspecto | null>(null);
+  const [pestana, setPestana] = useState<Pestana>("todos");
 
   function mover(prospectoId: string, nuevaEtapa: EtapaProspecto) {
     startTransition(async () => {
@@ -94,6 +99,17 @@ export function PipelineBoard({ prospectos }: { prospectos: ProspectoPipeline[] 
     mover(prospecto.id, etapa);
   }
 
+  const totalMeta = todosLosProspectos.filter((p) => p.deMeta).length;
+  const totalMios = todosLosProspectos.length - totalMeta;
+
+  // La pestaña sólo filtra qué se ve: las etapas y el arrastre siguen siendo
+  // los mismos, para que un lead de Meta que calificás siga su curso sin
+  // tener que saltar a otra pantalla.
+  const prospectos =
+    pestana === "todos"
+      ? todosLosProspectos
+      : todosLosProspectos.filter((p) => (pestana === "meta" ? p.deMeta : !p.deMeta));
+
   const porEtapa = (etapa: EtapaProspecto) => prospectos.filter((p) => p.etapa === etapa);
 
   const ganados = porEtapa("ganado");
@@ -108,6 +124,18 @@ export function PipelineBoard({ prospectos }: { prospectos: ProspectoPipeline[] 
 
   return (
     <div className="space-y-6">
+      <div className="flex flex-wrap gap-1.5">
+        <BotonPestana activa={pestana === "todos"} onClick={() => setPestana("todos")}>
+          Todos <span className="num opacity-60">{todosLosProspectos.length}</span>
+        </BotonPestana>
+        <BotonPestana activa={pestana === "mios"} onClick={() => setPestana("mios")}>
+          Cargados por mí <span className="num opacity-60">{totalMios}</span>
+        </BotonPestana>
+        <BotonPestana activa={pestana === "meta"} onClick={() => setPestana("meta")}>
+          <Megaphone className="h-3.5 w-3.5" /> De Meta <span className="num opacity-60">{totalMeta}</span>
+        </BotonPestana>
+      </div>
+
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Kpi label="En curso" valor={abiertos.length} color="var(--text)" />
         <Kpi label="Ganados" valor={ganados.length} color="var(--green)" />
@@ -231,6 +259,31 @@ export function PipelineBoard({ prospectos }: { prospectos: ProspectoPipeline[] 
   );
 }
 
+function BotonPestana({
+  activa,
+  onClick,
+  children,
+}: {
+  activa: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="btn-pill flex items-center gap-1.5 border px-3 py-1.5 text-[13px] font-semibold transition-colors"
+      style={
+        activa
+          ? { background: "var(--green-tint)", borderColor: "var(--green)", color: "var(--green)" }
+          : { background: "transparent", borderColor: "var(--border-token)", color: "var(--text-3)" }
+      }
+    >
+      {children}
+    </button>
+  );
+}
+
 function Kpi({ label, valor, color }: { label: string; valor: string | number; color: string }) {
   return (
     <div className="card px-4 py-3">
@@ -311,6 +364,15 @@ function ProspectoCard({
         <span className="text-[11px]" style={{ color: "var(--text-4)" }}>
           {ORIGEN_LABEL[p.origen] ?? p.origen}
         </span>
+        {p.deMeta && (
+          <span
+            className="inline-flex items-center gap-1 text-[11px]"
+            style={{ color: "var(--navy)" }}
+            title="Entró solo por el formulario de Meta"
+          >
+            <Megaphone className="h-3 w-3" /> auto
+          </span>
+        )}
         {estancado && (
           <span className="num text-[11px]" style={{ color: "var(--warn)" }} title="Días en el pipeline">
             {p.diasEnPipeline}d

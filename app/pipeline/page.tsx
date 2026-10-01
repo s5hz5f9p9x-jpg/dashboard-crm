@@ -37,6 +37,7 @@ export default async function PipelinePage() {
           calificado: p.calificado,
           cliente_id: p.cliente_id,
           diasEnPipeline: diasDesde(p.fecha_ingreso),
+          deMeta: !!p.meta_lead_id,
         }))}
       />
     </div>
