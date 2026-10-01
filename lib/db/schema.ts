@@ -270,12 +270,41 @@ export const prospectos = crmSchema.table(
     motivo_perdida: text("motivo_perdida"),
     cliente_id: text("cliente_id").references(() => clientes.id),
     notas: text("notas").notNull().default(""),
+    // Atribución de Meta: el leadgen_id es la clave con la que Meta cruza este
+    // prospecto con el anuncio que lo trajo (ver lib/meta/conversiones.ts).
+    meta_lead_id: text("meta_lead_id"),
+    meta_ad_id: text("meta_ad_id"),
+    meta_form_id: text("meta_form_id"),
     ...timestamps,
   },
   (t) => [
     index("prospectos_etapa_idx").on(t.etapa),
     index("prospectos_origen_idx").on(t.origen),
     index("prospectos_calificado_idx").on(t.calificado),
+    uniqueIndex("prospectos_meta_lead_id_unique").on(t.meta_lead_id),
+  ],
+);
+
+/**
+ * Registro de lo que se le mandó a la Conversions API de Meta. Sirve para
+ * depurar atribución y para no reenviar dos veces la misma etapa de un lead.
+ */
+export const metaEventos = crmSchema.table(
+  "meta_eventos",
+  {
+    id: id(),
+    prospecto_id: text("prospecto_id")
+      .notNull()
+      .references(() => prospectos.id, { onDelete: "cascade" }),
+    lead_id: text("lead_id").notNull(),
+    event_name: text("event_name").notNull(),
+    enviado_at: timestamp("enviado_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
+    ok: boolean("ok").notNull(),
+    respuesta: text("respuesta"),
+  },
+  (t) => [
+    index("meta_eventos_prospecto_idx").on(t.prospecto_id),
+    uniqueIndex("meta_eventos_lead_evento_unique").on(t.lead_id, t.event_name),
   ],
 );
 

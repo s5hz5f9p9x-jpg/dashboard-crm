@@ -21,6 +21,9 @@ export async function middleware(req: NextRequest) {
     pathname.startsWith("/login") ||
     pathname.startsWith("/api/login") ||
     pathname.startsWith("/api/backup") ||
+    // Webhook de Meta: lo llama Meta, no una persona. Se protege con la firma
+    // del app secret, no con la contraseña (ver app/api/meta/leads/route.ts).
+    pathname.startsWith("/api/meta") ||
     pathname.startsWith("/brand")
   ) {
     return NextResponse.next();

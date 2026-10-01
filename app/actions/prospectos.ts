@@ -7,6 +7,7 @@ import { clientes, prospectoEtapaHistorial, prospectos } from "@/lib/db/schema";
 import type { EtapaProspecto, OrigenProspecto, PatrimonioDeclarado } from "@/lib/db/schema";
 import { calcularCalificado } from "@/lib/prospectos";
 import { separarNombre } from "@/lib/importador";
+import { registrarEtapaEnMeta } from "@/app/actions/meta";
 
 export interface CrearProspectoInput {
   nombre: string;
@@ -67,6 +68,10 @@ export async function moverEtapaProspecto(prospectoId: string, nuevaEtapa: Etapa
     .where(eq(prospectos.id, prospectoId));
 
   await db.insert(prospectoEtapaHistorial).values({ prospecto_id: prospectoId, etapa: nuevaEtapa });
+
+  // Si el prospecto vino de un anuncio, Meta necesita saber cómo avanza para
+  // poder optimizar por quién termina siendo cliente.
+  await registrarEtapaEnMeta(prospectoId, nuevaEtapa);
 
   revalidatePath("/pipeline");
 }
