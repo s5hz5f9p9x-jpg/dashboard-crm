@@ -10,13 +10,11 @@ import {
   cuentasSupabaseIgnoradas,
   diagnosticos,
   disparadores,
-  ideasContenido,
   metricasSemanales,
   pedidosReferido,
   prospectoEtapaHistorial,
   prospectos,
   segmentoHistorial,
-  tareasPlan,
   tipoCambioHistorial,
 } from "@/lib/db/schema";
 
@@ -37,9 +35,7 @@ const TABLAS = {
   prospecto_etapa_historial: prospectoEtapaHistorial,
   pedidos_referido: pedidosReferido,
   metricas_semanales: metricasSemanales,
-  ideas_contenido: ideasContenido,
   diagnosticos,
-  tareas_plan: tareasPlan,
 } as const;
 
 function pad(n: number): string {

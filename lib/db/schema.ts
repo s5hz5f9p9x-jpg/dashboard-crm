@@ -370,27 +370,6 @@ export const metricasSemanales = crmSchema.table(
   (t) => [uniqueIndex("metricas_semanales_semana_unique").on(t.semana)],
 );
 
-export type PilarContenido = "traduccion" | "termometro" | "prueba";
-export type EstadoContenido = "pendiente" | "escrita" | "publicada" | "promocionada";
-export type RendimientoContenido = "alto" | "medio" | "bajo";
-
-export const ideasContenido = crmSchema.table(
-  "ideas_contenido",
-  {
-    id: id(),
-    pilar: text("pilar").$type<PilarContenido>().notNull(),
-    idea: text("idea").notNull(),
-    canal_sugerido: text("canal_sugerido"),
-    estado: text("estado").$type<EstadoContenido>().notNull().default("pendiente"),
-    fecha_publicacion: text("fecha_publicacion"),
-    rendimiento: text("rendimiento").$type<RendimientoContenido>(),
-    origen_idea: text("origen_idea"),
-    cliente_origen_id: text("cliente_origen_id").references(() => clientes.id),
-    ...timestamps,
-  },
-  (t) => [index("ideas_contenido_pilar_idx").on(t.pilar), index("ideas_contenido_estado_idx").on(t.estado)],
-);
-
 export const diagnosticos = crmSchema.table(
   "diagnosticos",
   {
@@ -412,23 +391,3 @@ export const diagnosticos = crmSchema.table(
   (t) => [index("diagnosticos_prospecto_idx").on(t.prospecto_id)],
 );
 
-export type FasePlan = "fase_0" | "fase_1" | "fase_2" | "fase_3";
-export type EstadoTarea = "pendiente" | "en_curso" | "hecho" | "no_aplica";
-
-export const tareasPlan = crmSchema.table(
-  "tareas_plan",
-  {
-    id: id(),
-    semana: integer("semana").notNull(),
-    fase: text("fase").$type<FasePlan>().notNull(),
-    tarea: text("tarea").notNull(),
-    categoria: text("categoria"),
-    tiempo_estimado: text("tiempo_estimado"),
-    entregable: text("entregable"),
-    estado: text("estado").$type<EstadoTarea>().notNull().default("pendiente"),
-    es_condicion_salida: boolean("es_condicion_salida").notNull().default(false),
-    fecha_completada: text("fecha_completada"),
-    ...timestamps,
-  },
-  (t) => [index("tareas_plan_fase_idx").on(t.fase), index("tareas_plan_semana_idx").on(t.semana)],
-);
