@@ -54,6 +54,9 @@ export const clientes = crmSchema.table(
     origen: text("origen"),
     referido_por_cliente_id: text("referido_por_cliente_id"),
     notas: text("notas").notNull().default(""),
+    // Fecha hasta la que el cliente queda fuera de la agenda del día. No es un
+    // contacto: el semáforo y la frecuencia siguen corriendo igual.
+    agenda_posponer_hasta: text("agenda_posponer_hasta"),
     ...timestamps,
   },
   (t) => [

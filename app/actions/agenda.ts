@@ -1,9 +1,9 @@
 "use server";
 
-import { and, gte, sql as sqlRaw } from "drizzle-orm";
+import { and, eq, gte, isNotNull, sql as sqlRaw } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db/client";
-import { contactos } from "@/lib/db/schema";
+import { clientes, contactos } from "@/lib/db/schema";
 import type { Segmento, TipoContacto } from "@/lib/db/schema";
 import { listarClientes } from "@/lib/clientes";
 import { getConfigNumber } from "@/lib/config";
@@ -13,6 +13,7 @@ import {
   calcularMetaMensual,
   calcularRacha,
   claveSemana,
+  estaPospuesto,
   metaSemanal,
   type ClienteParaAgenda,
 } from "@/lib/metas";
@@ -26,6 +27,8 @@ export interface ResumenAgenda {
   /** Clientes activos atrasados respecto de su frecuencia. */
   atrasados: number;
   agenda: ClienteParaAgenda[];
+  /** Cuántos están fuera de la agenda por una postergación vigente. */
+  pospuestos: number;
 }
 
 /** Cuántas semanas hacia atrás se miran para calcular la racha. */
@@ -33,6 +36,7 @@ const SEMANAS_DE_HISTORIA = 12;
 
 export async function obtenerAgenda(): Promise<ResumenAgenda> {
   const ahora = new Date();
+  const hoyISO = ahora.toISOString().slice(0, 10);
   const inicioMes = new Date(Date.UTC(ahora.getUTCFullYear(), ahora.getUTCMonth(), 1));
   const desdeHistoria = new Date(ahora);
   desdeHistoria.setUTCDate(desdeHistoria.getUTCDate() - SEMANAS_DE_HISTORIA * 7);
@@ -65,6 +69,7 @@ export async function obtenerAgenda(): Promise<ResumenAgenda> {
     aum_actual_usd: c.aum_actual_usd,
     diasDesdeUltimoContacto: c.diasDesdeUltimoContacto,
     tuvoContacto: c.tuvoContacto,
+    agendaPosponerHasta: c.agendaPosponerHasta,
   }));
 
   const metaMensual = calcularMetaMensual(paraAgenda, frecuencias);
@@ -86,7 +91,8 @@ export async function obtenerAgenda(): Promise<ResumenAgenda> {
     hechosEstaSemana: porSemana.get(semanaActual) ?? 0,
     racha: calcularRacha(semanasOrdenadas, objetivoSemanal),
     atrasados: clientes.filter((c) => c.estado === "activo" && c.semaforo === "rojo").length,
-    agenda: agendaDelDia(paraAgenda, frecuencias, 5),
+    agenda: agendaDelDia(paraAgenda, frecuencias, 5, hoyISO),
+    pospuestos: paraAgenda.filter((c) => c.estado === "activo" && estaPospuesto(c, hoyISO)).length,
   };
 }
 
@@ -97,4 +103,32 @@ export async function obtenerAgenda(): Promise<ResumenAgenda> {
 export async function registrarContactoRapido(clienteId: string, tipo: TipoContacto): Promise<void> {
   await registrarContacto({ cliente_id: clienteId, tipo, direccion: "saliente", resumen: "" });
   revalidatePath("/inicio");
+}
+
+/**
+ * Saca a un cliente de la agenda del día por una cantidad de días.
+ *
+ * No es un contacto: el semáforo y la frecuencia comprometida siguen corriendo
+ * igual, así que el cliente sigue figurando como atrasado donde corresponda.
+ * Sólo deja de ocupar un lugar en la lista de hoy.
+ */
+export async function posponerEnAgenda(clienteId: string, dias: number): Promise<void> {
+  const hasta = new Date();
+  hasta.setUTCDate(hasta.getUTCDate() + Math.max(1, dias));
+  await db
+    .update(clientes)
+    .set({ agenda_posponer_hasta: hasta.toISOString().slice(0, 10), updated_at: new Date() })
+    .where(eq(clientes.id, clienteId));
+  revalidatePath("/inicio");
+}
+
+/** Devuelve a la agenda a todos los que estén pospuestos. */
+export async function limpiarPostergaciones(): Promise<number> {
+  const filas = await db
+    .update(clientes)
+    .set({ agenda_posponer_hasta: null, updated_at: new Date() })
+    .where(isNotNull(clientes.agenda_posponer_hasta))
+    .returning({ id: clientes.id });
+  revalidatePath("/inicio");
+  return filas.length;
 }

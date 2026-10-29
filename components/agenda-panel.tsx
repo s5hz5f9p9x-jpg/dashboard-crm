@@ -5,11 +5,17 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { MessageCircle, Phone, Mail, Check, Flame, ArrowRight } from "lucide-react";
+import { MessageCircle, Phone, Mail, Check, Flame, ArrowRight, SkipForward, Undo2 } from "lucide-react";
 import { formatUSD } from "@/lib/format";
 import { segmentoEfectivo, type ClienteParaAgenda } from "@/lib/metas";
 import type { ResumenAgenda } from "@/app/actions/agenda";
-import { registrarContactoRapido } from "@/app/actions/agenda";
+import { registrarContactoRapido, posponerEnAgenda, limpiarPostergaciones } from "@/app/actions/agenda";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import type { TipoContacto } from "@/lib/db/schema";
 
 const COLOR_SEGMENTO: Record<string, string> = {
@@ -75,6 +81,8 @@ export function AgendaPanel({ datos }: { datos: ResumenAgenda }) {
           </Button>
         </div>
 
+        {datos.pospuestos > 0 && <AvisoPospuestos cantidad={datos.pospuestos} />}
+
         {datos.agenda.length === 0 ? (
           <div className="card py-10 text-center text-sm" style={{ color: "var(--text-4)" }}>
             No queda nadie por contactar hoy. Buen trabajo.
@@ -130,7 +138,17 @@ function FilaAgenda({ cliente: c }: { cliente: ClienteParaAgenda }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [hecho, setHecho] = useState(false);
+  const [salteado, setSalteado] = useState(false);
   const seg = segmentoEfectivo(c);
+
+  function posponer(dias: number, etiqueta: string) {
+    startTransition(async () => {
+      await posponerEnAgenda(c.id, dias);
+      setSalteado(true);
+      toast(`${c.apellido} vuelve a la lista ${etiqueta}.`);
+      router.refresh();
+    });
+  }
 
   function registrar(tipo: TipoContacto) {
     startTransition(async () => {
@@ -139,6 +157,17 @@ function FilaAgenda({ cliente: c }: { cliente: ClienteParaAgenda }) {
       toast.success(`Contacto registrado con ${c.nombre}.`);
       router.refresh();
     });
+  }
+
+  if (salteado) {
+    return (
+      <div className="card flex items-center gap-3 px-4 py-3" style={{ borderColor: "var(--border-token)" }}>
+        <SkipForward className="h-4 w-4" style={{ color: "var(--text-4)" }} />
+        <span className="text-sm" style={{ color: "var(--text-3)" }}>
+          {c.apellido}, {c.nombre} — salteado
+        </span>
+      </div>
+    );
   }
 
   if (hecho) {
@@ -187,6 +216,26 @@ function FilaAgenda({ cliente: c }: { cliente: ClienteParaAgenda }) {
         <BotonRapido onClick={() => registrar("email")} disabled={pending} titulo="Registrar email">
           <Mail className="h-3.5 w-3.5" />
         </BotonRapido>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              disabled={pending}
+              title="Saltear por ahora"
+              aria-label="Saltear por ahora"
+              className="btn-pill ml-1 flex h-8 w-8 items-center justify-center border transition-colors disabled:opacity-40"
+              style={{ borderColor: "var(--border-token)", color: "var(--text-4)" }}
+            >
+              <SkipForward className="h-3.5 w-3.5" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onSelect={() => posponer(1, "mañana")}>Saltear por hoy</DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => posponer(7, "en una semana")}>Posponer una semana</DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => posponer(30, "en un mes")}>Posponer un mes</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </div>
   );
@@ -215,5 +264,32 @@ function BotonRapido({
     >
       {children}
     </button>
+  );
+}
+
+function AvisoPospuestos({ cantidad }: { cantidad: number }) {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+
+  function deshacer() {
+    startTransition(async () => {
+      const n = await limpiarPostergaciones();
+      toast.success(`${n} ${n === 1 ? "cliente vuelve" : "clientes vuelven"} a la agenda.`);
+      router.refresh();
+    });
+  }
+
+  return (
+    <div className="mb-2 flex items-center justify-between gap-3 rounded-[14px] border px-4 py-2.5"
+      style={{ borderColor: "var(--border-token)", background: "rgba(243,243,233,.03)" }}>
+      <span className="text-xs" style={{ color: "var(--text-3)" }}>
+        <strong className="num">{cantidad}</strong>{" "}
+        {cantidad === 1 ? "cliente salteado no aparece" : "clientes salteados no aparecen"} por ahora. Siguen
+        contando como atrasados.
+      </span>
+      <Button variant="ghost" size="sm" onClick={deshacer} disabled={pending} className="h-7 shrink-0 text-xs">
+        <Undo2 className="h-3 w-3" /> Traerlos de vuelta
+      </Button>
+    </div>
   );
 }

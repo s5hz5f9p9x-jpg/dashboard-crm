@@ -23,6 +23,8 @@ export interface ClienteConEstado {
   diasDesdeUltimoContacto: number;
   /** false = nunca se registró un contacto; el semáforo se calcula desde el alta. */
   tuvoContacto: boolean;
+  /** Fecha (YYYY-MM-DD) hasta la que queda fuera de la agenda del día. */
+  agendaPosponerHasta: string | null;
 }
 
 function frecuenciaPorSegmento(segmento: Segmento, frecuencias: Record<Segmento, number>): number {
@@ -71,6 +73,7 @@ export async function listarClientes(): Promise<ClienteConEstado[]> {
       semaforo: c.estado === "activo" ? calcularSemaforo(diasDesdeUltimoContacto, frecuencia) : ("rojo" as Semaforo),
       diasDesdeUltimoContacto,
       tuvoContacto: !!ultimoContacto,
+      agendaPosponerHasta: c.agenda_posponer_hasta,
     };
   });
 }

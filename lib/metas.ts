@@ -26,6 +26,8 @@ export interface ClienteParaAgenda {
   aum_actual_usd: number;
   diasDesdeUltimoContacto: number;
   tuvoContacto: boolean;
+  /** Fecha (YYYY-MM-DD) hasta la que el cliente queda fuera de la agenda. */
+  agendaPosponerHasta: string | null;
 }
 
 export function segmentoEfectivo(c: { segmento: Segmento; segmento_manual: Segmento | null }): Segmento {
@@ -72,14 +74,20 @@ export function puntajePrioridad(c: ClienteParaAgenda, frecuencias: Record<Segme
  * Se devuelve una cantidad chica a propósito — una lista de 160 pendientes
  * paraliza, una de 5 se hace.
  */
+export function estaPospuesto(c: ClienteParaAgenda, hoy: string): boolean {
+  return !!c.agendaPosponerHasta && c.agendaPosponerHasta > hoy;
+}
+
 export function agendaDelDia(
   clientes: ClienteParaAgenda[],
   frecuencias: Record<Segmento, number>,
   cuantos = 5,
+  hoy = new Date().toISOString().slice(0, 10),
 ): ClienteParaAgenda[] {
   return clientes
     .filter((c) => c.estado === "activo")
     .filter((c) => !(c.tuvoContacto && c.diasDesdeUltimoContacto === 0))
+    .filter((c) => !estaPospuesto(c, hoy))
     .sort((a, b) => {
       const d = puntajePrioridad(b, frecuencias) - puntajePrioridad(a, frecuencias);
       return d !== 0 ? d : b.aum_actual_usd - a.aum_actual_usd;

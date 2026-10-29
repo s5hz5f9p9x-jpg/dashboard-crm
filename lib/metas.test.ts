@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   agendaDelDia,
+  estaPospuesto,
   calcularMetaMensual,
   calcularRacha,
   claveSemana,
@@ -24,6 +25,7 @@ function cliente(over: Partial<ClienteParaAgenda> = {}): ClienteParaAgenda {
     aum_actual_usd: 1000,
     diasDesdeUltimoContacto: 0,
     tuvoContacto: true,
+    agendaPosponerHasta: null,
     ...over,
   };
 }
@@ -136,12 +138,38 @@ describe("agendaDelDia", () => {
     expect(agendaDelDia(lista, FREC).map((c) => c.id)).toEqual(["a"]);
   });
 
+  it("deja afuera a los pospuestos hasta una fecha futura", () => {
+    const lista = [
+      cliente({ id: "pospuesto", diasDesdeUltimoContacto: 500, agendaPosponerHasta: "2026-11-05" }),
+      cliente({ id: "normal", diasDesdeUltimoContacto: 10 }),
+    ];
+    expect(agendaDelDia(lista, FREC, 5, "2026-10-29").map((c) => c.id)).toEqual(["normal"]);
+  });
+
+  it("vuelve a mostrarlo cuando se vence la postergación", () => {
+    const lista = [cliente({ id: "vencido", diasDesdeUltimoContacto: 500, agendaPosponerHasta: "2026-10-29" })];
+    // La postergación "hasta el 29" significa que el 29 ya vuelve a aparecer.
+    expect(agendaDelDia(lista, FREC, 5, "2026-10-29").map((c) => c.id)).toEqual(["vencido"]);
+  });
+
   it("desempata por AUM", () => {
     const lista = [
       cliente({ id: "chico", diasDesdeUltimoContacto: 100, aum_actual_usd: 1_000 }),
       cliente({ id: "grande", diasDesdeUltimoContacto: 100, aum_actual_usd: 500_000 }),
     ];
     expect(agendaDelDia(lista, FREC)[0].id).toBe("grande");
+  });
+});
+
+describe("estaPospuesto", () => {
+  it("es verdadero mientras la fecha sea futura", () => {
+    expect(estaPospuesto(cliente({ agendaPosponerHasta: "2026-11-10" }), "2026-10-29")).toBe(true);
+  });
+  it("es falso el mismo día en que se vence", () => {
+    expect(estaPospuesto(cliente({ agendaPosponerHasta: "2026-10-29" }), "2026-10-29")).toBe(false);
+  });
+  it("es falso si nunca se pospuso", () => {
+    expect(estaPospuesto(cliente({ agendaPosponerHasta: null }), "2026-10-29")).toBe(false);
   });
 });
 
