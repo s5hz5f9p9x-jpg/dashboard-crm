@@ -1,6 +1,5 @@
 import { db } from "./client";
-import { configuracion, ideasContenido, tareasPlan } from "./schema";
-import { IDEAS_CONTENIDO_SEED, TAREAS_PLAN_SEED } from "./seed-data";
+import { configuracion } from "./schema";
 
 const DEFAULTS: { clave: string; valor: string; descripcion: string }[] = [
   {
@@ -64,25 +63,6 @@ async function main() {
   }
   console.log(`Seed de configuracion: ${DEFAULTS.length} claves verificadas.`);
 
-  const tareasExistentes = await db.select().from(tareasPlan);
-  if (tareasExistentes.length === 0) {
-    for (const t of TAREAS_PLAN_SEED) {
-      await db.insert(tareasPlan).values(t);
-    }
-    console.log(`Seed de tareas_plan: ${TAREAS_PLAN_SEED.length} tareas insertadas.`);
-  } else {
-    console.log(`Seed de tareas_plan: ya había ${tareasExistentes.length} tareas, no se tocó.`);
-  }
-
-  const ideasExistentes = await db.select().from(ideasContenido);
-  if (ideasExistentes.length === 0) {
-    for (const i of IDEAS_CONTENIDO_SEED) {
-      await db.insert(ideasContenido).values(i);
-    }
-    console.log(`Seed de ideas_contenido: ${IDEAS_CONTENIDO_SEED.length} ideas insertadas.`);
-  } else {
-    console.log(`Seed de ideas_contenido: ya había ${ideasExistentes.length} ideas, no se tocó.`);
-  }
 }
 
 main();
